@@ -1,0 +1,329 @@
+-------------------
+GENERAL INFORMATION
+-------------------
+
+
+1. Title of Dataset 
+US Forest Service Data on Planning, Appeals, Litigation and NEPA compliance, 2005-2018
+
+2. Author Information
+
+
+  Principal Investigator Contact Information
+        Name: Forrest Fleischman
+           Institution: University of Minnesota	
+           Address: Department of Forest Resources
+           Email: ffleisch@umn.edu
+	   ORCID: 0000-0001-6060-4031
+
+  Associate or Co-investigator Contact Information
+        Name: Cory Struthers
+           Institution: University of Minnesota	
+           Address: Department of Forest Resources
+           Email: cstruth@umn.edu
+	   ORCID:
+
+  Associate or Co-investigator Contact Information
+           Name: Gwen Arnold
+           Institution: UC Davis
+           Address: Center for Environmental Policy & Behavior
+           Email: gbarnold@ucdavis.edu
+	   ORCID:
+
+ Associate or Co-investigator Contact Information
+           Name: Michael Dockry
+           Institution: University of Minnesota
+           Address: Department of Forest Resources
+           Email: mdockry@umn.edu
+	   ORCID:
+ Associate or Co-investigator Contact Information
+           Name: Tyler Scott
+           Institution: UC Davis
+           Address: Center for Environmental Policy & Behavior
+           Email: tascott@ucdavis.edu
+	   ORCID:
+
+3. Date of data collection (single date, range, approximate date) <suggested format YYYYMMDD>
+
+April 2019
+
+4. Geographic location of data collection (where was data collected?): 
+
+Data was requested from the US Forest Services
+
+5. Information about funding sources that supported the collection of the data:
+ 
+“Collaborative Research: Understanding Drivers of Innovation in the Use of Science in Federal NEPA Decision-Making.”, National Science Foundation (NSF) Award #1829255. 
+
+
+
+--------------------------
+SHARING/ACCESS INFORMATION
+-------------------------- 
+
+
+1. Licenses/restrictions placed on the data:
+CC0 1.0 Universal (CC0 1.0): Public Domain Dedication 
+
+2. Links to publications that cite or use the data:
+Publication accepted with minor revisions in the Journal of Forestry: US Forest Service implementation of the National Environmental Policy Act: fast, variable, rarely litigated, and declining
+
+3. Links to other publicly accessible locations of the data:
+NA
+
+4. Links/relationships to ancillary data sets:
+NA
+
+5. Was data derived from another source?
+           If yes, list source(s): This data is derived from the US Forest Service's Planning, Appeals, and Litigation System. We generated this data from the System's "Multi-Year Trend Report," which was requested from the US Forest Service.
+
+
+6. Recommended citation for the data:
+
+Fleischman, Forrest, Cory Struthers, Gwen Arnold, Michael Dockry, Tyler Scott 2020. US Forest Service Data on Planing, Appeals, Litigation and NEPA compliance, 2005-2018.  Retrieved from the Data Repository for the University of Minnesota, https://doi.org/10.13020/3xfe-2m18.   
+
+
+---------------------
+DATA & FILE OVERVIEW
+---------------------
+
+
+1. File List
+   A. Filename:     USFS_PALS_MYTR_adjusted_3-2019   
+      Short description:        Complete datset
+
+
+        
+
+2. Relationship between files:        
+
+
+
+3. Additional related data collected that was not included in the current data package:
+
+We did not include data covering projects initiated before 2005, as we could not verify the accuracy of this data, which was created prior to the creation of the PALS system.
+
+
+4. Are there multiple versions of the dataset? yes/no
+   If yes, list versions:
+           Name of file that was updated:
+                     i. Why was the file updated? 
+                ii. When was the file updated?
+           Name of file that was updated:
+                      i. Why was the file updated?
+                    ii. When was the file updated?
+
+
+
+
+--------------------------
+METHODOLOGICAL INFORMATION
+--------------------------
+
+
+1. Description of methods used for collection/generation of data: 
+<Include links or references to publications or other documentation containing experimental design or protocols used in data collection>
+
+In 2005 the US Forest Service began using a system called "Planning, Appeals, and Litigation System (PALS)" for recording all major events related to project planning throughout the agency, particularly as they relate to work required for environmental analysis under the National Environmental Policy Act.
+In April 2019 we accessed this data, with permission from the US Forest Service, and downloaded the Multi-Year Trend Report, which recorded meta-data about all USFS projects. The MYTR was a .csv file that did not contain the complete project records (which are present in the USFS version of this dataset).
+We eliminated all projects initiated prior to 2005, because we were unable to verify that this information was entered accurately into the dataset.
+Data are entered into the PALS system by officials throughout the National Forest System. 
+
+2. Methods for processing the data: <describe how the submitted data were generated from the raw or collected data>
+
+We error checked the data in STATA - further details on this process will be available in our forthcoming publiation
+
+3. Instrument- or software-specific information needed to interpret the data:
+
+
+4. Standards and calibration information, if appropriate:
+
+
+5. Environmental/experimental conditions:
+
+
+6. Describe any quality-assurance procedures performed on the data:
+
+
+7. People involved with sample collection, processing, analysis and/or submission:
+All coauthors and no one else.
+
+
+
+-----------------------------------------
+DATA-SPECIFIC INFORMATION FOR: [FILENAME]
+-----------------------------------------
+<create sections for each dataset included>
+
+
+1. Number of variables: 80
+
+
+2. Number of cases/rows: 33,977
+
+
+
+
+3. Missing data codes:
+        Code/symbol        Definition
+        Code/symbol        Definition
+
+
+4. Variable List
+(note: I have left some variable descriptions blank because they are obvious and/or we have no further information about them. In most cases we have no information about the codes used by the USFS)
+
+Column: Variable Name
+A: FOREST_ID 
+Unique ID number assigned to each National Forest by the US Forest Service
+B: Project Number
+Unique ID number assigned to each project
+C: Project Name
+Name given by administrators to Project (usually based on a place name and/or the major activity proposed)
+D: LMU (Actual)
+The most locally specific administrative unit (Land Management Unit) affected by the project
+E: LMU - Region
+The region number this unit is located in. The full name of the region is in column CW
+F: LMU - Forest
+Abbreviation for the national forest the unit is located in. The full name of the region is in column CX
+G: LMU - District
+Name of the Ranger District the project is located in
+H: Project Status
+Whether or not the project is completed
+I: Project Created
+The date when data was entered into the PALS system
+J: Created FY
+The fiscal year the data was entered into the PALS system
+K: Decision ID
+An ID number assigned to the decision
+L: Decision Name
+A name given to the decision
+M: Initiation Date
+The date the USFS began working on the decision (typically the date of the announcement of a Notice of Intent or Scoping Notice)
+N: Initiation Fiscal Year. Calendar year equivalents are in Column M and CZ
+O: Decision Signed
+Date a final decision was signed
+P: Signed Fiscal Year. Calendar year equivalents are in Column O and CY
+Q: Signer last name
+R: Signer first name
+S: Signer Title
+Job title of the person who signed the decision
+T: Decision Type
+DN-Decision Notice (Environmental Assessment), DM - Decision memo (Categorical exclusion), ROD - Record of Decision (for an Environmental Impact Statement). Column DA contains the analysis type.
+U: Decision Appeal Rule, 
+V: Project Notice and Comment Regulation
+which rules governing appeals, notice & comment regulation apply to the decision
+W: Appealed or Objected?
+Yes = 1
+X: No Comments or Only Support
+Yes = 1 - we do not fully understand this category from the USFS, and did not use it in our analyses.
+X: Litigated
+yes = 1
+
+Columns Z - AQ, Purposes
+Purposes are broad goals of a project, and are coded by the people responsible for entering data into PALS. 1= yes, has this purpose, zero = doesn't have this purpose
+-FC Facility Management Purpose
+-FR Research Purpose
+-HF Fuels Management Purpose
+-HR Heritage Resource Management Purpose
+-LM Land ownership management â€“ purpose	
+-LW Land acquisition â€“ purpose	
+-MG Minerals and geology â€“ purpose	
+-PN Land management planning â€“ purpose	
+-RD Road management â€“ purpose	
+-RG Grazing management â€“ purpose	
+-RO Regulations, directives, orders â€“ purpose	
+-RU Special area management â€“ purpose	
+-RW Recreation management â€“ purpose
+-SU Special use management â€“ purpose	
+-TM Forest products â€“ purpose	
+-VM Vegetation management (non-forest products) â€“ purpose	
+-WF Wildlife, fish, rare plants â€“ purpose	
+-WM Water management â€“ purpose
+
+Columns AR - CO, Activities
+Activities are, according to the agency, more specific than purposes. Again 1=yes, has this activity
+-AL Land use adjustments â€“ activity	
+-BL Boundary adjustments â€“ activity	
+-BM Biomass â€“ activity	
+-CP Plan creation/revision â€“ activity	
+-DC Directive creation/modification â€“ activity	
+-DR Road decommissioning â€“ activity	
+-DS Developed site management â€“ activity	
+-EC Environmental compliance actions â€“ activity	
+-ET Electric transmission â€“ activity	
+-FACTS Activity (0,1)	
+-FI Facility improvements/construction â€“ activity	
+-FN Fuel treatments â€“ activity	
+-FV Forest vegetation improvements â€“ activity	
+-GA Dispersed recreation management â€“ activity	
+-GP Grazing allotment management â€“ activity	
+-GR Grazing authorizations â€“ activity	
+-GT Geothermal â€“ activity	
+-HI Species habitat improvements â€“ activity	
+-HP Hydropower â€“ activity	
+-HR Heritage resource management â€“ activity	
+-LA Special use authorizations â€“ activity	
+-LP Land purchases â€“ activity	
+-MF Facility maintenance â€“ activity	
+-ML Abandoned mine land clean-up â€“ activity	
+-MO Minerals or geology plans of operations â€“ activity	
+-MP Plan amendment â€“ activity	
+-MT Trail management â€“ activity	
+-NC Special products sales â€“ activity	
+-NG Natural gas â€“ activity	
+-NW Noxious weed treatments â€“ activity	
+-OC Order creation/modification â€“ activity	
+-OL Oil â€“ activity	
+-PE Species population enhancements â€“ activity	
+-PJ Land exchanges â€“ activity	
+-RA Roadless area management â€“ activity	
+-RC Regulation creation/modification â€“ activity	
+-RD Road maintenance â€“ activity	
+-RE Research and development â€“ activity	
+-RI Road improvements/construction â€“ activity	
+-RV Rangeland vegetation improvements â€“ activity	
+-SA Special area management â€“ activity	
+-SC Scenery management â€“ activity	
+-SI Grazing structural improvements â€“ activity	
+-SL Solar â€“ activity	
+-SS Timber sales (salvage) â€“ activity	
+-TR Travel management â€“ activity	
+-TS Timber sales (green) â€“ activity	
+-WC Watershed improvements â€“ activity	
+-WD Wilderness management â€“ activity	
+-WI Wind â€“ activity
+
+
+CP: UNIQUE PROJECT?	
+Is the project unique?
+CQ: ELAPSED DAYS	
+Number of days from beginning analysis to reaching a decision
+CR: UNIQUE DECISION?	
+CS: ongoing
+(opposite of complete), 1 = ongoing
+CT: DISTRICT_ID
+A unique Identifier for the ranger district
+CU: REGION_ID
+The number of the Region	
+CV: DECISION_LEVEL
+What office made the decision (i.e.Ranger district, National Forest, Region in ascending order)
+CW: RegionName
+Name of the region	
+CX: forestName
+Name of the National Forest	
+CY: calendarYearSigned. The full date equivalent is in Column M, and the fiscal year equivalent is in Column P.
+CZ: calendarYearInitiated. The full date equivalent is in Column O, and the fiscal year equivalent is in Column N.
+DA: analysisType
+Categorical Exclusion (CE), Environmental Assessment (EA), or Environmental Impact Statement (EIS). Column T contains the Decision Type.
+DB: elapsedYears
+
+
+
+
+
+
+
+
+
+
+
