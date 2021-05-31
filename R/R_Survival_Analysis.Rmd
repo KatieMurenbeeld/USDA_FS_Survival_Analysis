@@ -1,7 +1,7 @@
 ---
-title: "R markdown Survival Analysis"
+title: "R for US Forest Service Projects Survival Analysis"
 author: "Katie Murenbeeld"
-date: "5/29/2021"
+date: "5/31/2021"
 output: pdf_document
 ---
 
@@ -12,7 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 # Introduction
 
-The following code was used to perform the various survival analyses for this research. Please see .... for the code to download and process the Forest Service data. The UMN-PALS data (Fleischman et al., 2020) can be downloaded from here: https://conservancy.umn.edu/handle/11299/211669
+The following code was used to perform the various survival analyses for this research. Please see the Python folder in this repository for a Jupyter Notebook with instructions for downloading the USFS activities data. See also the R folder in this repositroty for the R script (R_USFS_Survival_Data_Processing.R) used for further data processing of the USFS activities datasets. This R script also has the code for combining the activities datasets (FS_ACT) with the UNM-PALS data. The UMN-PALS data (Fleischman et al., 2020) is in the Data folder of this repository and can be downloaded from here: https://conservancy.umn.edu/handle/11299/211669. References can be found in the References folder of this repository. 
 
 ## Load libraries
 
@@ -37,7 +37,7 @@ options(max.print = 10000)
 
 ## Load the data
 
-Data from post-processing. See *S3.1* and *S3.2*.
+Data from post-processing. See **Download_Convert_Subset_Forest_Service_Data-for-Survival-Analysis-v02.ipynb** in the Python folder of this repository for instructions on downloading and subsetting the USFS activities data. See **R_USFS_Survival_Data_Processing.R** in the R folder of this repository for instrcutions on further data processing and combining with the PALS data.
 
 ```{r data, echo=TRUE, eval=TRUE}
 ## Load the data for survival analysis
@@ -48,13 +48,14 @@ df_fin <- df_fin %>%
 
 ## Replace "Inf" in the project delay column with NA
 df_fin$proj.delay[is.infinite(df_fin$proj.delay)] <- NA 
-## Bring in binomial data as a factor
+## Bring in binomial and categorical data as a factor
 df_fin$REGION <- as.factor(df_fin$REGION)
 df_fin$LITIGATED <- as.factor(df_fin$LITIGATED)
 df_fin$APPEALED <- as.factor(df_fin$APPEALED)
 df_fin$size <- as.factor(df_fin$size)
 
 ## Relevel the size data in order from small to extra-large
+## In this dataframe Regions are in numerical order (1->6)
 df_fin <- df_fin %>%
   mutate(size = fct_relevel(size, 
             "small", "medium", "large", "x-large"))
@@ -86,7 +87,7 @@ df_fin6 <- df_fin %>%
 
 # Check for data correlations
 
-```{r corr, echo=FALSE, eval=TRUE}
+```{r corr, echo=TRUE, eval=TRUE}
 
 df_fin_cor <- transform (df_fin, NEPA_TYPE = factor(NEPA_TYPE, 
                                                     levels = c("CE", "EA", "EIS"),
@@ -105,7 +106,7 @@ col <- cor(covariates)
 
 # Why care?
 
-When it comes to USFS project planning and inititaion there is some anecdotal evidence for NEPA causing delays...but very few quantitative studies.
+When it comes to USFS project planning and inititaion there is some anecdotal evidence for NEPA causing delays, but there are very few quantitative studies of delays.
 
 ```{r wcc, echo=FALSE, fig.align="center", fig.cap="Recent letter to Congress from Western Congressional Causcus", out.width = '75%'}
 knitr::include_graphics("Wester_Caucus_02.png")
@@ -120,6 +121,7 @@ knitr::include_graphics("Wester_Caucus_02.png")
 - Time until a kitten or puppy is adopted.
 - Any time an outcome is a **duration**
 - Requires a start date, end date, duration (time between), if the event occurred, and the time of observation.
+- Survival package in R (Therneau, 2021)
 
 ```{r kitpup, echo=FALSE, fig.align="center", out.width = '75%'}
 knitr::include_graphics("kit_pup.jpg")
@@ -128,8 +130,8 @@ knitr::include_graphics("kit_pup.jpg")
 
 ## Different approaches
 
-- **Kaplan-Meier** --> non-parametric, predictive
-- **Cox Proportional Hazards** --> semi-parametric, use to estimate effect of covariate, not predictive
+- **Kaplan-Meier** --> non-parametric, predictive (Kaplan & Meier, 1958)
+- **Cox Proportional Hazards** --> semi-parametric, use to estimate effect of covariate, not predictive (Cox, 1972)
 
 # Survival Analysis - Kaplan Meier 
 
@@ -611,13 +613,15 @@ There are 5 assumptions for using a Cox PH model
 c-log-log test Litigated?
 
 ```{r clog_lit, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
+## If saving the plots using this method, then make sure to uncomment dev.off().
+
 cox_lit_clog <- survfit(Surv(proj.delay, INITIATED) ~ LITIGATED, data = df_fin)
 
 ##pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_lit_clog.pdf")
 
 plot(cox_lit_clog, data = df_fin, fun = "cloglog")
 
-dev.off()
+#dev.off()
 ```
 
 c-log-log test Appealed?
@@ -625,11 +629,11 @@ c-log-log test Appealed?
 ```{r clog_app, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
 cox_app_clog <- survfit(Surv(proj.delay, INITIATED) ~ APPEALED, data = df_fin)
 
-pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_app_clog.pdf")
+#pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_app_clog.pdf")
 
 plot(cox_app_clog, data = df_fin, fun = "cloglog")
 
-dev.off()
+#dev.off()
 ```
 
 c-log-log test Region?
@@ -637,11 +641,11 @@ c-log-log test Region?
 ```{r clog_reg, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
 cox_reg_clog <- survfit(Surv(proj.delay, INITIATED) ~ REGION, data = df_fin)
 
-pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_reg_clog.pdf")
+#pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_reg_clog.pdf")
 
 plot(cox_reg_clog, data = df_fin, fun = "cloglog")
 
-dev.off()
+#dev.off()
 ```
 
 c-log-log test Size?
@@ -649,16 +653,16 @@ c-log-log test Size?
 ```{r clog_size, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
 cox_size_clog <- survfit(Surv(proj.delay, INITIATED) ~ size, data = df_fin)
 
-pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_size_clog.pdf")
+#pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_size_clog.pdf")
 
 plot(cox_size_clog, data = df_fin, fun = "cloglog")
 
-dev.off()
+#dev.off()
 ```
 
 # Determining the Cox Proportional Hazards Model
 
-Here we used a likelihood ratios test (LRT) to determine the final form of the Cox proportional hazards model.
+Here we used a likelihood ratios test (LRT) to determine the final form of the Cox proportional hazards model. If p-values are <0.05 the covariate should be included in the model.
 
 ```{r cox.cat, echo=FALSE, eval=TRUE, warning=FALSE}
 # Use the coxph function to create a Cox proportional hazards model.
