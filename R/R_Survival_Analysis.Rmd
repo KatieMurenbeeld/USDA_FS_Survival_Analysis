@@ -612,7 +612,7 @@ There are 5 assumptions for using a Cox PH model
 ## Cox PH - Test proportionality assumption
 c-log-log test Litigated?
 
-```{r clog_lit, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
+```{r clog_lit, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
 ## If saving the plots using this method, then make sure to uncomment dev.off().
 
 cox_lit_clog <- survfit(Surv(proj.delay, INITIATED) ~ LITIGATED, data = df_fin)
@@ -626,7 +626,7 @@ plot(cox_lit_clog, data = df_fin, fun = "cloglog")
 
 c-log-log test Appealed?
 
-```{r clog_app, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
+```{r clog_app, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
 cox_app_clog <- survfit(Surv(proj.delay, INITIATED) ~ APPEALED, data = df_fin)
 
 #pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_app_clog.pdf")
@@ -638,7 +638,7 @@ plot(cox_app_clog, data = df_fin, fun = "cloglog")
 
 c-log-log test Region?
 
-```{r clog_reg, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
+```{r clog_reg, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
 cox_reg_clog <- survfit(Surv(proj.delay, INITIATED) ~ REGION, data = df_fin)
 
 #pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_reg_clog.pdf")
@@ -650,7 +650,7 @@ plot(cox_reg_clog, data = df_fin, fun = "cloglog")
 
 c-log-log test Size?
 
-```{r clog_size, echo=FALSE, eval=TRUE,  warning=FALSE, out.height="500px"}
+```{r clog_size, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
 cox_size_clog <- survfit(Surv(proj.delay, INITIATED) ~ size, data = df_fin)
 
 #pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_size_clog.pdf")
@@ -664,7 +664,7 @@ plot(cox_size_clog, data = df_fin, fun = "cloglog")
 
 Here we used a likelihood ratios test (LRT) to determine the final form of the Cox proportional hazards model. If p-values are <0.05 the covariate should be included in the model.
 
-```{r cox.cat, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.cat, echo=TRUE, eval=TRUE, warning=FALSE}
 # Use the coxph function to create a Cox proportional hazards model.
 cox.test <- coxph(Surv(proj.delay, INITIATED) ~ 1, data = df_fin)
 print(cox.test)
@@ -672,7 +672,7 @@ print(cox.test)
 
 ## Should we add NEPA type?
 
-```{r cox.cat2, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.cat2, echo=TRUE, eval=TRUE, warning=FALSE}
  # Use the coxph function to create a Cox proportional hazards model by NEPA type. 
 cox.cat2 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE, data = df_fin)
 cox.cat2
@@ -687,7 +687,7 @@ anova(cox.cat2, cox.test, test="LRT")
 
 ## Should we include Litigated?
 
-```{r cox.cat3, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.cat3, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox.cat3 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED, data = df_fin)
 #print(cox.cat3)
@@ -698,7 +698,7 @@ anova(cox.cat3, cox.cat2, test="LRT")
 
 ## Should we include Appealed?
 
-```{r cox.cat4, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.cat4, echo=TRUE, eval=TRUE, warning=FALSE}
 cox.cat4 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + APPEALED, data=df_fin)
 #summary(cox.cat3)
 
@@ -707,7 +707,7 @@ anova(cox.cat4, cox.cat3, test="LRT")
 **No**
 
 ## Should we include Region?
-```{r cox.cat5, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.cat5, echo=TRUE, eval=TRUE, warning=FALSE}
 cox.cat5 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION, data=df_fin)
 
 # Can test if using the dataset with different a different Region as the reference makes a differece.
@@ -721,7 +721,7 @@ anova(cox.cat5, cox.cat3, test="LRT")
 
 ## Should we include size?
 
-```{r cox.cat6, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.cat6, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox.cat6 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin)
 #summary(cox.cat6)
@@ -733,7 +733,7 @@ The final Cox proportional hazards model should include all covariates exceot fo
 
 Need to create Cox models using each of the dataframes made with a different region set as the reference. 
 
-```{r cox.cat6r, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.cat6r, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox.cat6r2 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin2)
 cox.cat6r3 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin3)
@@ -747,7 +747,7 @@ cox.cat6r6 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION
 
 ## Cox PH Model - Hazard Ratios - Region 1 as Ref
 
-```{r cox.hr1, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.hr1, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox_forest_01 <- ggforest(cox.cat6, data=df_fin)
 cox.cat6
@@ -758,7 +758,7 @@ print(cox_forest_01)
 
 ## Cox PH Model - Hazard Ratios - Region 2 as Ref
 
-```{r cox.hr2, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.hr2, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox_forest_02 <- ggforest(cox.cat6r2, data=df_fin2)
 
@@ -769,7 +769,7 @@ print(cox_forest_02)
 
 ## Cox PH Model - Hazard Ratios - Region 3 as Ref
 
-```{r cox.hr3, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.hr3, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox_forest_03 <- ggforest(cox.cat6r3, data=df_fin3)
 
@@ -780,7 +780,7 @@ print(cox_forest_03)
 
 ## Cox PH Model - Hazard Ratios - Region 4 as Ref
 
-```{r cox.hr4, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.hr4, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox_forest_04 <- ggforest(cox.cat6r4, data=df_fin4)
 
@@ -791,7 +791,7 @@ print(cox_forest_04)
 
 ## Cox PH Model - Hazard Ratios - Region 5 as Ref
 
-```{r cox.hr5, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.hr5, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox_forest_05 <- ggforest(cox.cat6r5, data=df_fin5)
 
@@ -802,7 +802,7 @@ print(cox_forest_05)
 
 ## Cox PH Model - Hazard Ratios - Region 6 as Ref
 
-```{r cox.hr6, echo=FALSE, eval=TRUE, warning=FALSE}
+```{r cox.hr6, echo=TRUE, eval=TRUE, warning=FALSE}
 
 cox_forest_06 <- ggforest(cox.cat6r6, data=df_fin6)
 
