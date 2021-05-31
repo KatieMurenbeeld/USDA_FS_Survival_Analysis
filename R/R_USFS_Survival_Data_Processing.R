@@ -136,7 +136,7 @@ head(pals_sub)
 
 
 
-## Remove specific projects by number (will remove some projects by name later in the code) from the Pals data
+## Remove specific projects by number (will remove some projects by name later in the code) from the PALS data
 
 # Creating this vector doesn't actually do anything. It was helpful as a reference when running the susequent code to remove projects by number. 
 bad.proj.num <- c(16397, 16397, 26667, 26675, 26830, 30107,32001, 32002, 40302,
@@ -267,9 +267,7 @@ head(rf)
 tsi <- rename(tsi, ACTIVITY_2 = ACTIVITY_C)
 head(tsi)
 
-
-
-## Join the activities datasets into one dataframe
+## Join the activities datasets into one dataframe.
 
 fs_act <- rbind(th, hf, rf, tsi)
 
@@ -279,9 +277,10 @@ fs_act <- rbind(th, hf, rf, tsi)
 fs_act_2005 <- fs_act %>% 
   filter(SerDatesPlan >= "2005-01-01")
 
+# Can't remember why I did this. It may not be necessary.
 fs_act_2005_n <- fs_act_2005
 
-## Remove specific projects by name
+## Remove specific projects by name from the fs_act_2005 dataset.
 # Creating this vector doesn't actually do anything. It was helpful as a reference when running the susequent code to remove projects by name.
 bad.proj.names <- c("HAPPY CAMP TOWN FIRE PROTECTION PROJECT 03", "ERICKSON THIN CHIP",
                     "DAWSON 1", "KELLY PASS YG THIN", "TAYLOR", "LITTLE GRIDER FUELBREAK",
@@ -335,7 +334,8 @@ df_x <- df_x %>%
 # Check the data
 head(df_x)
 
-# This is the code I used to create the dataframes I used to double check for "bad" or unmatched project numbers and names.  
+# This is the code I used to create the dataframes I used to double check for "bad" or unmatched project numbers and names. 
+# Project names and numbers need to match. Some project numbers were reused from older projects in different Regions. 
 proj_name_check <- df_x %>%
   select(NEPA_NAME, NEPA_DOC_N, PROJECT_NUMBER, REGION)
 
@@ -356,7 +356,7 @@ proj_name_check2 <- proj_name_check %>%
 # Create new variables with functions of existing variables (mutate()).
 # Collapse many values down to a single summary (summarize()).
 
-# Group the data by PROJECT_NUMBER with median time_lag
+# Group the data by PROJECT_NUMBER and calculate the time lag for each activity.
 
 df_x <- mutate(df_x,  
              TIME_LAG.all = (SerDatesComp - SerDatesPlan))
@@ -367,7 +367,7 @@ head(df_x)
 df_x <- df_x %>% group_by(PROJECT_NUMBER) %>% mutate(act.count=n())
 
 # At this point df_x has the data sorted by project but still has all the data for each individual activity in the project.
-# But need data summarized by project. Minimum init_date, minimum decision_date, minimum and maximum planned date and completed dates, 
+# However, we wanted data summarized by project. Minimum init_date, minimum decision_date, minimum and maximum planned date and completed dates, 
 # the time lag as the median time lag, the sum of the area (units) planned to be treated and actually treated, the average th, hf, rf, and tsi 
 # (to show the objective(s) of the project), the average number of activities completed, and the average number of activities.
 
@@ -378,7 +378,7 @@ df_test02 <- summarize(group_by(df_x, PROJECT_NUMBER), init.date = min(INIT_DATE
                        completed = mean(Completed), act.count=mean(act.count))  
 head(df_test02)  
 
-# Calculate the planned project duration  
+# Calculate the planned project duration. A 1 is added so that no project duration would be 0. (something can't take no days to complete)  
 df_test02 <- mutate(df_test02, 
                     proj.dur.plan = as.numeric(plan.date.max - plan.date.min)+1)
 # Calculate the project duration as completed
@@ -391,7 +391,7 @@ df_test02 <- mutate(df_test02,
 # Check the data
 head(df_test02)  
 
-# No rejoin to the subset Pals data by project number.
+# Noww rejoin to the subset Pals data by project number.
 
 df_fin <- pals_sub %>%
   left_join(df_test02, by = "PROJECT_NUMBER")
@@ -403,7 +403,7 @@ df_fin <- df_fin %>%
 head(df_fin)
 
 # Create a Completed column
-# 0 for imcomplete projects (...) 1 for completed projects. 
+# 0 for incomplete projects (any project where proj.dur.comp = 0 or NA) and 1 for completed projects. 
 df_fin$COMPLETED <- ifelse(df_fin$proj.dur.comp >= 0, 1, 0)
 df_fin$COMPLETED[is.na(df_fin$COMPLETED)] <- 0
 
@@ -419,6 +419,42 @@ df_fin$INITIATED[is.na(df_fin$INITIATED)] <- 0
 #write.csv(df_fin, "~/Desktop/Survival_Analysis/Sept_2020/df_c20201020.csv")
 #write.csv(fs_act, "~/Desktop/Survival_Analysis/Sept_2020/fs-act_c20201020.csv")
 #write.csv(fs_act_2005, "~/Desktop/Survival_Analysis/Sept_2020/fs-act-2005_c20201020.csv")
+
+
+## From here need to create a few more columns.
+
+df_fin <- read.csv("~/Desktop/Survival_Analysis/Sept_2020/df_c20201020.csv")
+
+df_fin$proj.delay[is.infinite(df_fin$proj.delay)] <- NA 
+df_fin$max_date <- as.Date("2018-12-31")
+df_fin$max.delay <-  (df_fin$max_date - as.Date(df_fin$plan.date.min))
+df_fin$proj.delay <- ifelse(is.na(df_fin$proj.delay), df_fin$max.delay, df_fin$proj.delay)
+df_fin$REGION <- as.factor(df_fin$REGION)
+df_fin$LITIGATED <- as.factor(df_fin$LITIGATED)
+df_fin$APPEALED <- as.factor(df_fin$APPEALED)
+
+df_fin <- df_fin %>%
+  mutate(YP = year(df_fin$plan.date.min))
+
+head(df_fin)
+
+## Create categories for treatment size. These are based on the quartile ranges.
+
+df_fin <- df_fin %>%
+  mutate(size = case_when(
+    num.units.plan >= 2670 ~ "x-large",
+    num.units.plan < 2670 & num.units.plan >= 768 ~ "large",
+    num.units.plan < 768 & num.units.plan >= 174 ~ "medium",
+    num.units.plan < 174 & num.units.plan >= 0 ~ "small"
+  ))
+
+## Remove some unwanted columns. 
+
+df_fin <- df_fin %>%
+  select(-init.date, decision.data, -X)
+
+## Save as version 2
+#write.csv(df_fin, "~/Desktop/Survival_Analysis/Oct_presentation/df_c20201020_v02.csv")
 
 
 ### PART 3: Visualization of data #########
