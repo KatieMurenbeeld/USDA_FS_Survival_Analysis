@@ -423,19 +423,27 @@ df_fin$INITIATED[is.na(df_fin$INITIATED)] <- 0
 
 ## From here need to create a few more columns.
 
+# load the newly created df_
 df_fin <- read.csv("~/Desktop/Survival_Analysis/Sept_2020/df_c20201020.csv")
 
+# Replace inf with NA for proj.delay
 df_fin$proj.delay[is.infinite(df_fin$proj.delay)] <- NA 
+# Add in the maximum date (date for the end of observation)
 df_fin$max_date <- as.Date("2018-12-31")
+# Calculate the maximum delay for incomplete projects (initiated or uninitiated)
 df_fin$max.delay <-  (df_fin$max_date - as.Date(df_fin$plan.date.min))
+# Replace the project delay with the maximum delay if proj.delay=NA
 df_fin$proj.delay <- ifelse(is.na(df_fin$proj.delay), df_fin$max.delay, df_fin$proj.delay)
+# Set categorical data as factors
 df_fin$REGION <- as.factor(df_fin$REGION)
 df_fin$LITIGATED <- as.factor(df_fin$LITIGATED)
 df_fin$APPEALED <- as.factor(df_fin$APPEALED)
 
+# Create a column (YP) for the year of the minimum planned date.
 df_fin <- df_fin %>%
   mutate(YP = year(df_fin$plan.date.min))
 
+# Check the data
 head(df_fin)
 
 ## Create categories for treatment size. These are based on the quartile ranges.
