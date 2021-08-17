@@ -1,0 +1,817 @@
+---
+title: "R for US Forest Service Projects Survival Analysis"
+author: "Katie Murenbeeld"
+date: "5/31/2021"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#knitr::opts_chunk$set(fig.pos = "!H", out.extra = "")
+```
+
+# Introduction
+
+The following code was used to perform the various survival analyses for this research. Please see the Python folder in this repository for a Jupyter Notebook with instructions for downloading the USFS activities data. See also the R folder in this repositroty for the R script (R_USFS_Survival_Data_Processing.R) used for further data processing of the USFS activities datasets. This R script also has the code for combining the activities datasets (FS_ACT) with the UNM-PALS data. The UMN-PALS data (Fleischman et al., 2020) is in the Data folder of this repository and can be downloaded from here: https://conservancy.umn.edu/handle/11299/211669. References can be found in the References folder of this repository. 
+
+## Load libraries
+
+```{r libraries, echo=TRUE, eval=TRUE}
+library(tidyverse)
+library(forcats)
+library(survminer)
+library(survival)
+library(lubridate)
+library(reshape2)
+library(ggplot2)
+library(ggpubr)
+
+# Set your working directory to wherever you placed your processed FS-PALS dataaset.
+
+setwd("/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/Oct_presentation/")
+
+# Set up to see more rows of output if desired
+
+options(max.print = 10000)
+```
+
+## Load the data
+
+Data from post-processing. See **Download_Convert_Subset_Forest_Service_Data-for-Survival-Analysis-v02.ipynb** in the Python folder of this repository for instructions on downloading and subsetting the USFS activities data. See **R_USFS_Survival_Data_Processing.R** in the R folder of this repository for instrcutions on further data processing and combining with the PALS data.
+
+```{r data, echo=TRUE, eval=TRUE}
+## Load the data for survival analysis
+
+df_fin <- read.csv("df_c20201020_v02.csv")
+df_fin <- df_fin %>%
+  select(-X) 
+
+## Replace "Inf" in the project delay column with NA
+df_fin$proj.delay[is.infinite(df_fin$proj.delay)] <- NA 
+## Bring in binomial and categorical data as a factor
+df_fin$REGION <- as.factor(df_fin$REGION)
+df_fin$LITIGATED <- as.factor(df_fin$LITIGATED)
+df_fin$APPEALED <- as.factor(df_fin$APPEALED)
+df_fin$size <- as.factor(df_fin$size)
+
+## Relevel the size data in order from small to extra-large
+## In this dataframe Regions are in numerical order (1->6)
+df_fin <- df_fin %>%
+  mutate(size = fct_relevel(size, 
+            "small", "medium", "large", "x-large"))
+
+## Create different data frames with Regions releveled. 
+## This is required to test the impact of using different 
+## Regions as a baseline or reference in the Cox proportional 
+## analysis.
+df_fin2 <- df_fin %>%
+  mutate(REGION = fct_relevel(REGION, 
+            "2", "1", "3", "4", "5", "6"))
+
+df_fin3 <- df_fin %>%
+  mutate(REGION = fct_relevel(REGION, 
+            "3", "1", "2", "4", "5", "6"))
+
+df_fin4 <- df_fin %>%
+  mutate(REGION = fct_relevel(REGION, 
+            "4", "1", "2", "3", "5", "6"))
+
+df_fin5 <- df_fin %>%
+  mutate(REGION = fct_relevel(REGION, 
+            "5", "1", "2", "3", "4", "6"))
+
+df_fin6 <- df_fin %>%
+  mutate(REGION = fct_relevel(REGION, 
+            "6", "1", "2", "3", "4", "5"))
+```
+
+# Check for data correlations
+
+```{r corr, echo=TRUE, eval=TRUE}
+
+df_fin_cor <- transform (df_fin, NEPA_TYPE = factor(NEPA_TYPE, 
+                                                    levels = c("CE", "EA", "EIS"),
+                                                    labels = c(1, 2, 3)))
+df_fin_cor <- transform(df_fin_cor, size = factor(size,
+                                                  levels = c("small", "medium", "large", "x-large"),
+                                                  label = c(1, 2, 3, 4)))
+
+covariates <- data.frame(as.numeric(df_fin_cor$proj.delay), as.numeric(df_fin_cor$NEPA_TYPE), as.numeric(df_fin_cor$LITIGATED), as.numeric(df_fin_cor$APPEALED), as.numeric(df_fin_cor$REGION), 
+as.numeric(df_fin_cor$size))
+
+col <- cor(covariates)
+
+##write.csv(col, "~/Desktop/Survival_Analysis/WRITING/TABLES/correlation_20210406.csv")
+```
+
+# Why care?
+
+When it comes to USFS project planning and inititaion there is some anecdotal evidence for NEPA causing delays, but there are very few quantitative studies of delays.
+
+```{r wcc, echo=FALSE, fig.align="center", fig.cap="Recent letter to Congress from Western Congressional Causcus", out.width = '75%'}
+knitr::include_graphics("Wester_Caucus_02.png")
+
+```
+
+# Survival Analysis 
+
+"Time to Event"
+
+- Time until an individual dies (or is cured!).
+- Time until a kitten or puppy is adopted.
+- Any time an outcome is a **duration**
+- Requires a start date, end date, duration (time between), if the event occurred, and the time of observation.
+- Survival package in R (Therneau, 2021)
+
+```{r kitpup, echo=FALSE, fig.align="center", out.width = '75%'}
+knitr::include_graphics("kit_pup.jpg")
+
+```
+
+## Different approaches
+
+- **Kaplan-Meier** --> non-parametric, predictive (Kaplan & Meier, 1958)
+- **Cox Proportional Hazards** --> semi-parametric, use to estimate effect of covariate, not predictive (Cox, 1972)
+
+# Survival Analysis - Kaplan Meier 
+
+## All data - Kaplan Meier (KM) Estimate
+
+Using all the data pooled.
+
+```{r km_mod_all, echo=TRUE, eval=TRUE}
+
+# Use the survfit function from the survival package to 
+# calculate the KM estimate 
+
+fit_delay_all <- survfit(Surv(proj.delay, INITIATED) ~ 1, data = df_fin)
+fit_delay_all
+#summary(fit_delay_all)
+```
+
+## Survival Analysis - All - Kaplan Meier Curves
+
+All data
+
+```{r km_curv_all, echo=TRUE, eval=TRUE, warning=FALSE}
+
+## ggsurvvplot will create survival curves from the KM model created above.
+
+km_fit_all <- ggsurvplot(fit_delay_all,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           surv.median.line = "hv",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           censor = FALSE,
+           ylab = "Probability that Project is Not Started",
+           xlab = "Project Delay (days)",
+           palette = c("forestgreen"),
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75, 
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()),
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_fit_all)
+
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_fit_all.pdf", print(km_fit_all),  device="pdf", dpi=300)
+```
+
+## Survival Analysis - All - Kaplan Meier - Cumulative Hazard
+
+All data
+
+```{r km_haz_all, echo=TRUE, eval=TRUE, warning=FALSE}
+
+# ggsurvplot will create the cumulative hazard plots based on the KM model created above.
+
+km_haz_all <- ggsurvplot(fit_delay_all,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           censor = FALSE,
+           ylab = "Cumulative Hazard",
+           xlab = "Project Delay (days)",
+           palette = c("forestgreen"),
+           fun = "cumhaz",
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                          axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_haz_all)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_haz_all.pdf", print(km_haz_all),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Appealed? - KM Estimate
+
+Data grouped by appealed and non-appealed projects.
+
+```{r km_mod_app, echo=TRUE, eval=TRUE, warning=FALSE}
+# Use the survfit function from the survival package to 
+# calculate the KM estimate for data grouped by appealed or non-appealed.
+# This code chunk and the next two act as a template for the K-M estimation.
+
+fit_app <- survfit(Surv(proj.delay, INITIATED) ~ APPEALED, data = df_fin)
+fit_app_table <- summary(fit_app)
+fit_app
+```
+
+## Survival Analysis - Appealed? - KM Curve
+
+```{r km_curv_app, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_curv_app <- ggsurvplot(fit_app,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           surv.median.line = "hv",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Probability that Project is Not Started",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "skyblue"),
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_curv_app)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_curv_app.pdf", print(km_curv_app),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Appealed? - KM Cumulative Hazard
+
+```{r km_haz_app, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_haz_app <- ggsurvplot(fit_app,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           censor = FALSE,
+           ylab = "Cumulative Hazard",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "skyblue"),
+           fun = "cumhaz",
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_haz_app)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_haz_app.pdf", print(km_haz_app),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Litigated? - KM Estimate
+
+Data grouped by litigated and non-litigated projects.
+
+```{r km_mod_lit, echo=TRUE, eval=TRUE, warning=FALSE}
+
+fit_lit <- survfit(Surv(proj.delay, INITIATED) ~ LITIGATED, data = df_fin)
+fit_lit_table <- summary(fit_lit)
+fit_lit
+```
+
+## Survival Analysis - Litigated? - KM Curve
+
+```{r km_curv_lit, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_curv_lit <- ggsurvplot(fit_lit,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           surv.median.line = "hv",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Probability that Project is Not Started",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "forestgreen"),
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_curv_lit)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_curv_lit.pdf", print(km_curv_lit),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Litigated? - KM Cumulative Hazard
+
+```{r km_haz_lit, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_haz_lit <- ggsurvplot(fit_lit,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           censor = FALSE,
+           ylab = "Cumulative Hazard",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "forestgreen"),
+           fun = "cumhaz",
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_haz_lit)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_haz_lit.pdf", print(km_haz_lit),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - NEPA Type - KM Estimate
+
+Data grouped by NEPA type for projects. *EIS* = Environmental Impact Statement, *EA* = Environmental Assessment, *CE* = Categorical Exclusion
+
+```{r km_mod_nepa, echo=TRUE, eval=TRUE, warning=FALSE}
+
+fit_delay <- survfit(Surv(proj.delay, INITIATED) ~ NEPA_TYPE, data = df_fin)
+fit_nepa_table <- summary(fit_delay)
+fit_delay 
+```
+
+## Survival Analysis - NEPA Type - KM Curve
+
+```{r km_curv_nepa, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_curv_nepa <- ggsurvplot(fit_delay,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           surv.median.line = "hv",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Probability that Project is Not Started",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "#E69F00", "#56B4E9"),
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_curv_nepa)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_curv_nepa.pdf", print(km_curv_nepa),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - NEAP Type - KM Cumulative Hazard
+
+```{r km_haz_nepa, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_haz_nepa <- ggsurvplot(fit_delay,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Cumulative Hazard",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "#E69F00", "#56B4E9"),
+           fun = "cumhaz",
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_haz_nepa)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_haz_nepa.pdf", print(km_haz_nepa),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Regions - KM Estimate
+
+Data grouped by project location. United Stated Forest Service (USFS) Regions 1-6
+
+```{r km_mod_reg, echo=TRUE, eval=TRUE, warning=FALSE}
+
+fit_reg <- survfit(Surv(proj.delay, INITIATED) ~ REGION, data = df_fin)
+fit_reg_table <- summary(fit_reg)
+fit_reg
+```
+
+## Survival Analysis - Regions - KM Curve
+
+```{r km_curv_reg, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_curv_reg <- ggsurvplot(fit_reg,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           surv.median.line = "hv",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Probability that Project is Not Started",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "#E69F00", "#56B4E9", "red", "forestgreen", "blue"),
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()),  
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_curv_reg)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_curv_reg.pdf", print(km_curv_reg),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Regions - KM Cumulative Hazard
+
+```{r km_haz_reg, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_haz_reg <- ggsurvplot(fit_reg,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Cumulative Hazard",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "#E69F00", "#56B4E9", "red", "forestgreen", "blue"),
+           fun = "cumhaz",
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()),  
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_haz_reg)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_haz_reg.pdf", print(km_haz_reg),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Size - KM Estimate
+
+Data grouped by a project's cumulative size. Size categories = small, medium, large, and extra-large.
+
+Sizes are categorized based on quartile ranges
+  + x-large > 2670 acres
+  + large 768-2670 acres
+  + medium 174-768 acres
+  + small < 174 acres
+
+```{r km_mod_size, echo=TRUE, eval=TRUE, warning=FALSE}
+
+fit_size <- survfit(Surv(proj.delay, INITIATED) ~ size, data = df_fin)
+fit_size_table <- summary(fit_size)
+fit_size
+```
+
+## Survival Analysis - Size - KM Curve
+
+```{r km_curv_size, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_curv_size <- ggsurvplot(fit_size,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           surv.median.line = "hv",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Probability that Project is Not Started",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "#E69F00", "#56B4E9", "red"),
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                           axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()), 
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_curv_size)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_curv_size.pdf", print(km_curv_size),  device="pdf", dpi=300 )
+```
+
+## Survival Analysis - Size - KM Cumulative Hazard
+
+```{r cum_size, echo=TRUE, eval=TRUE, warning=FALSE}
+
+km_haz_size <- ggsurvplot(fit_size,
+           conf.int = TRUE,
+           risk.table = FALSE,
+           risk.table.col = "strata",
+           break.time.by = 365,
+           risk.table.y.text=FALSE,
+           tables.height = 0.3,
+           censor = FALSE,
+           ylab = "Cumulative Hazard",
+           xlab = "Project Delay (days)",
+           palette = c("#999999", "#E69F00", "#56B4E9", "red"),
+           fun = "cumhaz",
+           surv.plot.height = 1,
+           ggtheme = theme(aspect.ratio = 0.75,
+                      axis.line = element_line(colour = "black"),
+                           panel.grid.major = element_line(colour = "grey"),
+                           panel.border = element_blank(),
+                           panel.background = element_blank()),     
+           tables.theme =  theme(aspect.ratio = 0.06)
+           )
+print(km_haz_size)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/km_haz_size.pdf", print(km_haz_size),  device="pdf", dpi=300 )
+```
+
+## Comparing survival curves using a log-rank approach
+
+- Null hypothesis: no difference in survival between the groups
+- Non-parametric test
+
+Log-Rank - Appealed?
+
+```{r log-rank_app, echo=TRUE, eval=TRUE, warning=FALSE}
+
+# The survdiff function in the survival package does this for you.
+
+surv_diff_delay_app <- survdiff(Surv(proj.delay, INITIATED) ~ APPEALED, data = df_fin)
+print(surv_diff_delay_app)
+```
+
+Log-Rank - Litigated?
+```{r long-rank_lit, echo=TRUE, eval=TRUE, warning=FALSE}
+surv_diff_delay_lit <- survdiff(Surv(proj.delay, INITIATED) ~ LITIGATED, data = df_fin)
+print(surv_diff_delay_lit)
+```
+
+Log-Rank - NEPA
+
+```{r log-rank_nepa, echo=TRUE, eval=TRUE, warning=FALSE}
+surv_diff_delay_nepa <- survdiff(Surv(proj.delay, INITIATED) ~ NEPA_TYPE, data = df_fin)
+print(surv_diff_delay_nepa)
+```
+
+Log-Rank - Region
+
+```{r log-rank_reg, echo=TRUE, eval=TRUE, warning=FALSE}
+surv_diff_delay_reg <- survdiff(Surv(proj.delay, INITIATED) ~ REGION, data = df_fin)
+print(surv_diff_delay_reg)
+```
+
+Log-Rank - size
+
+```{r log-rank_size, echo=TRUE, eval=TRUE, warning=FALSE}
+surv_diff_delay_size <- survdiff(Surv(proj.delay, INITIATED) ~ size, data = df_fin)
+print(surv_diff_delay_size)
+```
+
+# Cox Proportional Hazards (Cox ph) Model
+
+## Test Cox proportional hazards assumptions
+
+There are 5 assumptions for using a Cox PH model
+
+1. Non-informative censoring
+2. Survival times, t, are independent
+3. Hazards are proportional
+4. ln(HR) is a linear function of *numerical* covariates (non in this study)
+5. Covariate values don't change over time (eg. changing a treatment or dosage)
+6. The baseline hazard (ie. hazard if all covariates were 0) is unspecified
+
+## Cox PH - Test proportionality assumption
+c-log-log test Litigated?
+
+```{r clog_lit, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
+## If saving the plots using this method, then make sure to uncomment dev.off().
+
+cox_lit_clog <- survfit(Surv(proj.delay, INITIATED) ~ LITIGATED, data = df_fin)
+
+##pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_lit_clog.pdf")
+
+plot(cox_lit_clog, data = df_fin, fun = "cloglog")
+
+#dev.off()
+```
+
+c-log-log test Appealed?
+
+```{r clog_app, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
+cox_app_clog <- survfit(Surv(proj.delay, INITIATED) ~ APPEALED, data = df_fin)
+
+#pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_app_clog.pdf")
+
+plot(cox_app_clog, data = df_fin, fun = "cloglog")
+
+#dev.off()
+```
+
+c-log-log test Region?
+
+```{r clog_reg, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
+cox_reg_clog <- survfit(Surv(proj.delay, INITIATED) ~ REGION, data = df_fin)
+
+#pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_reg_clog.pdf")
+
+plot(cox_reg_clog, data = df_fin, fun = "cloglog")
+
+#dev.off()
+```
+
+c-log-log test Size?
+
+```{r clog_size, echo=TRUE, eval=TRUE,  warning=FALSE, out.height="500px"}
+cox_size_clog <- survfit(Surv(proj.delay, INITIATED) ~ size, data = df_fin)
+
+#pdf( file = "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_size_clog.pdf")
+
+plot(cox_size_clog, data = df_fin, fun = "cloglog")
+
+#dev.off()
+```
+
+# Determining the Cox Proportional Hazards Model
+
+Here we used a likelihood ratios test (LRT) to determine the final form of the Cox proportional hazards model. If p-values are <0.05 the covariate should be included in the model.
+
+```{r cox.cat, echo=TRUE, eval=TRUE, warning=FALSE}
+# Use the coxph function to create a Cox proportional hazards model.
+cox.test <- coxph(Surv(proj.delay, INITIATED) ~ 1, data = df_fin)
+print(cox.test)
+```
+
+## Should we add NEPA type?
+
+```{r cox.cat2, echo=TRUE, eval=TRUE, warning=FALSE}
+ # Use the coxph function to create a Cox proportional hazards model by NEPA type. 
+cox.cat2 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE, data = df_fin)
+cox.cat2
+```
+
+```{r cox.comp2, echo=TRUE, eval=TRUE, warning=FALSE}
+# Here we use the anova function to complete the LRT test. 
+anova(cox.cat2, cox.test, test="LRT")
+
+```
+**Yes**
+
+## Should we include Litigated?
+
+```{r cox.cat3, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox.cat3 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED, data = df_fin)
+#print(cox.cat3)
+
+anova(cox.cat3, cox.cat2, test="LRT")
+```
+**Yes** 
+
+## Should we include Appealed?
+
+```{r cox.cat4, echo=TRUE, eval=TRUE, warning=FALSE}
+cox.cat4 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + APPEALED, data=df_fin)
+#summary(cox.cat3)
+
+anova(cox.cat4, cox.cat3, test="LRT")
+```
+**No**
+
+## Should we include Region?
+```{r cox.cat5, echo=TRUE, eval=TRUE, warning=FALSE}
+cox.cat5 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION, data=df_fin)
+
+# Can test if using the dataset with different a different Region as the reference makes a differece.
+cox.cat5.2 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION, data=df_fin2)
+
+#summary(cox.cat5)
+
+anova(cox.cat5, cox.cat3, test="LRT")
+```
+**Yes**
+
+## Should we include size?
+
+```{r cox.cat6, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox.cat6 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin)
+#summary(cox.cat6)
+
+anova(cox.cat6, cox.cat5, test="LRT")
+```
+
+The final Cox proportional hazards model should include all covariates exceot for appealed.
+
+Need to create Cox models using each of the dataframes made with a different region set as the reference. 
+
+```{r cox.cat6r, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox.cat6r2 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin2)
+cox.cat6r3 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin3)
+cox.cat6r4 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin4)
+cox.cat6r5 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin5)
+cox.cat6r6 <- coxph(Surv(proj.delay, INITIATED) ~ NEPA_TYPE + LITIGATED + REGION + size, data=df_fin6)
+
+```
+
+## Create forest plots of Cox proportional hazards models. 
+
+## Cox PH Model - Hazard Ratios - Region 1 as Ref
+
+```{r cox.hr1, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox_forest_01 <- ggforest(cox.cat6, data=df_fin)
+cox.cat6
+print(cox_forest_01)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_forest_01.pdf", print(cox_forest_01),  device="pdf", dpi=300 )
+
+```
+
+## Cox PH Model - Hazard Ratios - Region 2 as Ref
+
+```{r cox.hr2, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox_forest_02 <- ggforest(cox.cat6r2, data=df_fin2)
+
+print(cox_forest_02)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_forest_02.pdf", print(cox_forest_02),  device="pdf", dpi=300 )
+
+```
+
+## Cox PH Model - Hazard Ratios - Region 3 as Ref
+
+```{r cox.hr3, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox_forest_03 <- ggforest(cox.cat6r3, data=df_fin3)
+
+print(cox_forest_03)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_forest_03.pdf", print(cox_forest_03),  device="pdf", dpi=300 )
+
+```
+
+## Cox PH Model - Hazard Ratios - Region 4 as Ref
+
+```{r cox.hr4, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox_forest_04 <- ggforest(cox.cat6r4, data=df_fin4)
+
+print(cox_forest_04)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_forest_04.pdf", print(cox_forest_04),  device="pdf", dpi=300 )
+
+```
+
+## Cox PH Model - Hazard Ratios - Region 5 as Ref
+
+```{r cox.hr5, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox_forest_05 <- ggforest(cox.cat6r5, data=df_fin5)
+
+print(cox_forest_05)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_forest_05.pdf", print(cox_forest_05),  device="pdf", dpi=300 )
+
+```
+
+## Cox PH Model - Hazard Ratios - Region 6 as Ref
+
+```{r cox.hr6, echo=TRUE, eval=TRUE, warning=FALSE}
+
+cox_forest_06 <- ggforest(cox.cat6r6, data=df_fin6)
+
+print(cox_forest_06)
+#ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_forest_06.pdf", print(cox_forest_06),  device="pdf", dpi=300 )
+
+```
+
+
+
+
+
