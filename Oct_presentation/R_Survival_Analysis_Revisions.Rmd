@@ -1282,7 +1282,7 @@ anova(cox.test, cox.cat_treat, test="LRT")
 
 ```{r cox.hr1, echo=TRUE, eval=TRUE, warning=FALSE}
 
-cox_forest_01 <- ggforest(cox.cat6, data=df_fin)
+cox_forest_01 <- ggforest(cox.cat6, data=df_fin) 
 cox.cat6
 print(cox_forest_01)
 #ggsave( "/Users/kathrynmurenbeeld/Desktop/Survival_Analysis/WRITING/FIGS/cox_forest_01.pdf", print(cox_forest_01),  device="pdf", dpi=300 )
