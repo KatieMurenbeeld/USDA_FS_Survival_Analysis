@@ -16,6 +16,6 @@ In the **PYTHON** folder you will find a Jupyter Notebook *Downlaod_Convert_Subs
 
 In the **R** folder you will find a R script for processing the data downloaded in #1. 
 
-## Use the R markdown (or use as a template) to complete a survival analysis. 
+## Use the R markdown (or use it as a template) to complete a survival analysis. 
 
 In the **R** you can use the *R_Survival_Analysis.Rmd*, or in the **REVISION** folder you can use the *R_Survival_Analysis_Revisions.Rmd* to complete the survival analysis. I have included useful references in the **REFERENCES** folder which include the R vignette for using the survival package as well as a few of the fundamental papers.
