@@ -1,5 +1,5 @@
 # US Forest Service Survival Analysis
-The goal of this repository if to investigate the the time lags of forest management treatments within the United States Forest Service (USFS). 
+Welcome to the US Forest Service Survival Analysis, the goal of this repository if to investigate the the time lags of forest management treatments within the US Forest Service (USFS). 
 
 Survival analysis of time lags, i.e. delays in activity or project initiation, will be done using R and Python.
 
@@ -15,3 +15,7 @@ In the **PYTHON** folder you will find a Jupyter Notebook *Downlaod_Convert_Subs
 ## 2. Use an R script for data processing
 
 In the **R** folder you will find a R script for processing the data downloaded in #1. 
+
+## Use the R markdown (or use as a template) to complete a survival analysis. 
+
+In the **R** you can use the *R_Survival_Analysis.Rmd*, or in the **REVISION** folder you can use the *R_Survival_Analysis_Revisions.Rmd* to complete the survival analysis. I have included useful references in the **REFERENCES** folder which include the R vignette for using the survival package as well as a few of the fundamental papers.
