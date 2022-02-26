@@ -10,4 +10,8 @@ To reproduce this study:
 
 ## 1. Download and subset the desired USFS activities data.
 
-In the *xx* folder you will find a Jupyter Notebook with instructions for downloading and subsetting USFS data.
+In the **PYTHON** folder you will find a Jupyter Notebook *Downlaod_Convert_Subset_Forest_Service_Data-for-Survival-Analysis-v02.ipynb* with instructions for downloading and subsetting USFS data.
+
+## 2. Use an R script for data processing
+
+In the **R** folder you will find a R script for processing the data downloaded in #1. 
